@@ -9,11 +9,12 @@ import {
 } from 'react-native';
 import TextInputOutlined from './TextInputOutlined';
 import TextInputFlat from './TextInputFlat';
-import TextInputIcon from './Adornment/Icon';
-import TextInputAffix from './Adornment/Affix';
+import TextInputIcon, { Props as TextInputIconProps } from './Adornment/Icon';
+import TextInputAffix, {
+  Props as TextInputAffixProps,
+} from './Adornment/Affix';
 import { withTheme } from '../../core/theming';
-import type { RenderProps, State } from './types';
-import type { $Omit } from '../../types';
+import type { RenderProps } from './types';
 
 const BLUR_ANIMATION_DURATION = 180;
 const FOCUS_ANIMATION_DURATION = 150;
@@ -121,6 +122,23 @@ export type TextInputProps = React.ComponentPropsWithRef<
   theme: ReactNativePaper.Theme;
 };
 
+interface CompoundedComponent
+  extends React.ForwardRefExoticComponent<
+    TextInputProps & React.RefAttributes<TextInputHandles>
+  > {
+  Icon: React.FunctionComponent<TextInputIconProps>;
+  Affix: React.FunctionComponent<Partial<TextInputAffixProps>>;
+}
+
+interface TextInputHandles {
+  forceFocus(): void;
+  focus(): void; // Focuses the input.
+  clear(): void; //Removes all text from the TextInput.
+  blur(): void; // Removes focus from the input.
+  isFocused(): boolean; // Returns `true` if the input is currently focused, `false` otherwise.
+  setNativeProps(args: Object): void; // @internal
+}
+
 /**
  * A component to allow users to input text.
  *
@@ -166,136 +184,122 @@ export type TextInputProps = React.ComponentPropsWithRef<
  * @extends TextInput props https://facebook.github.io/react-native/docs/textinput.html#props
  */
 
-class TextInput extends React.Component<TextInputProps, State> {
-  // @component ./Adornment/Icon.tsx
-  static Icon = TextInputIcon;
+const TextInput: React.RefForwardingComponent<
+  TextInputHandles,
+  TextInputProps
+> /* & {
+  Icon: React.FunctionComponent<TextInputIconProps>;
+  Affix: React.FunctionComponent<TextInputAffixProps>;
+} */ = (
+  {
+    mode = 'flat',
+    dense = false,
+    disabled = false,
+    error: errorProp = false,
+    multiline = false,
+    editable = true,
+    render = (props: RenderProps) => <NativeTextInput {...props} />,
+    ...rest
+  }: TextInputProps,
+  ref
+) => {
+  const validInputValue =
+    rest.value !== undefined ? rest.value : rest.defaultValue;
 
-  // @component ./Adornment/Affix.tsx
-  static Affix = TextInputAffix;
+  const { current: labeled } = React.useRef<Animated.Value>(
+    new Animated.Value(validInputValue ? 0 : 1)
+  );
+  const { current: error } = React.useRef<Animated.Value>(
+    new Animated.Value(errorProp ? 1 : 0)
+  );
+  const [focused, setFocused] = React.useState<boolean>(false);
+  const [placeholder, setPlaceholder] = React.useState<
+    string | null | undefined
+  >('');
+  const [value, setValue] = React.useState<string | undefined>(validInputValue);
+  const [labelLayout, setLabelLayout] = React.useState<{
+    measured: boolean;
+    width: number;
+    height: number;
+  }>({
+    measured: false,
+    width: 0,
+    height: 0,
+  });
+  const [leftLayout, setLeftLayout] = React.useState<{
+    height: number | null;
+    width: number | null;
+  }>({
+    width: null,
+    height: null,
+  });
+  const [rightLayout, setRightLayout] = React.useState<{
+    height: number | null;
+    width: number | null;
+  }>({
+    width: null,
+    height: null,
+  });
 
-  static defaultProps: Partial<TextInputProps> = {
-    mode: 'flat',
-    dense: false,
-    disabled: false,
-    error: false,
-    multiline: false,
-    editable: true,
-    render: (props: RenderProps) => <NativeTextInput {...props} />,
-  };
+  let { current: timer } = React.useRef<NodeJS.Timeout | undefined>();
 
-  static getDerivedStateFromProps(nextProps: TextInputProps, prevState: State) {
-    return {
-      value:
-        typeof nextProps.value !== 'undefined'
-          ? nextProps.value
-          : prevState.value,
+  const root = React.useRef<NativeTextInput | undefined | null>();
+
+  React.useImperativeHandle(ref, () => ({
+    focus: () => root.current?.focus(),
+    clear: () => root.current?.clear(),
+    setNativeProps: (args: Object) => root.current?.setNativeProps(args),
+    isFocused: () => root.current?.isFocused() || false,
+    blur: () => root.current?.blur(),
+    forceFocus: () => root.current?.focus(),
+  }));
+
+  React.useLayoutEffect(() => {
+    if (typeof rest.value !== 'undefined') setValue(rest.value);
+  }, [rest.value]);
+
+  React.useEffect(() => {
+    // When the input has an error, we wiggle the label and apply error styles
+    if (errorProp) showError();
+    else hideError();
+  }, [errorProp]);
+
+  React.useEffect(() => {
+    // Show placeholder text only if the input is focused, or there's no label
+    // We don't show placeholder if there's a label because the label acts as placeholder
+    // When focused, the label moves up, so we can show a placeholder
+    if (focused || !rest.label) showPlaceholder();
+    else hidePlaceholder();
+  }, [focused, rest.label]);
+
+  React.useEffect(() => {
+    // The label should be minimized if the text input is focused, or has text
+    // In minimized mode, the label moves up and becomes small
+    // workaround for animated regression for react native > 0.61
+    // https://github.com/callstack/react-native-paper/pull/1440
+    if (value || focused) minimizeLabel();
+    else restoreLabel();
+  }, [focused, value, labelLayout]);
+
+  React.useEffect(() => {
+    return () => {
+      if (timer) clearTimeout(timer);
     };
-  }
-  validInputValue =
-    this.props.value !== undefined ? this.props.value : this.props.defaultValue;
+  }, []);
 
-  state = {
-    labeled: new Animated.Value(this.validInputValue ? 0 : 1),
-    error: new Animated.Value(this.props.error ? 1 : 0),
-    focused: false,
-    placeholder: '',
-    value: this.validInputValue,
-    labelLayout: {
-      measured: false,
-      width: 0,
-      height: 0,
-    },
-    leftLayout: {
-      width: null,
-      height: null,
-    },
-    rightLayout: {
-      width: null,
-      height: null,
-    },
-  };
-
-  ref: NativeTextInput | undefined | null;
-
-  componentDidUpdate(prevProps: TextInputProps, prevState: State) {
-    const isFocusChanged = prevState.focused !== this.state.focused;
-    const isValueChanged = prevState.value !== this.state.value;
-    const isLabelLayoutChanged =
-      prevState.labelLayout !== this.state.labelLayout;
-    const isLabelChanged = prevProps.label !== this.props.label;
-    const isErrorChanged = prevProps.error !== this.props.error;
-
-    if (
-      isFocusChanged ||
-      isValueChanged ||
-      // workaround for animated regression for react native > 0.61
-      // https://github.com/callstack/react-native-paper/pull/1440
-      isLabelLayoutChanged
-    ) {
-      // The label should be minimized if the text input is focused, or has text
-      // In minimized mode, the label moves up and becomes small
-      if (this.state.value || this.state.focused) {
-        this.minimizeLabel();
-      } else {
-        this.restoreLabel();
-      }
-    }
-
-    if (isFocusChanged || isLabelChanged) {
-      // Show placeholder text only if the input is focused, or there's no label
-      // We don't show placeholder if there's a label because the label acts as placeholder
-      // When focused, the label moves up, so we can show a placeholder
-      if (this.state.focused || !this.props.label) {
-        this.showPlaceholder();
-      } else {
-        this.hidePlaceholder();
-      }
-    }
-
-    if (isErrorChanged) {
-      // When the input has an error, we wiggle the label and apply error styles
-      if (this.props.error) {
-        this.showError();
-      } else {
-        this.hideError();
-      }
-    }
-  }
-
-  componentWillUnmount() {
-    if (this.timer) {
-      clearTimeout(this.timer);
-    }
-  }
-
-  private showPlaceholder = () => {
-    if (this.timer) {
-      clearTimeout(this.timer);
-    }
+  const showPlaceholder = () => {
+    if (timer) clearTimeout(timer);
 
     // Set the placeholder in a delay to offset the label animation
     // If we show it immediately, they'll overlap and look ugly
-    // @ts-ignore
-    this.timer = setTimeout(
-      () =>
-        this.setState({
-          placeholder: this.props.placeholder,
-        }),
-      50
-    );
+    timer = setTimeout(() => setPlaceholder(rest.placeholder), 50);
   };
 
-  private hidePlaceholder = () =>
-    this.setState({
-      placeholder: '',
-    });
+  const hidePlaceholder = () => setPlaceholder('');
 
-  private timer?: number;
-  private root: NativeTextInput | undefined | null;
-
-  private showError = () => {
-    const { scale } = this.props.theme.animation;
-    Animated.timing(this.state.error, {
+  const showError = () => {
+    const { scale } = rest.theme.animation;
+    Animated.timing(error, {
       toValue: 1,
       duration: FOCUS_ANIMATION_DURATION * scale,
       // To prevent this - https://github.com/callstack/react-native-paper/issues/941
@@ -303,12 +307,12 @@ class TextInput extends React.Component<TextInputProps, State> {
         ios: false,
         default: true,
       }),
-    }).start(this.hidePlaceholder);
+    }).start(hidePlaceholder);
   };
 
-  private hideError = () => {
-    const { scale } = this.props.theme.animation;
-    Animated.timing(this.state.error, {
+  const hideError = () => {
+    const { scale } = rest.theme.animation;
+    Animated.timing(error, {
       toValue: 0,
       duration: BLUR_ANIMATION_DURATION * scale,
       // To prevent this - https://github.com/callstack/react-native-paper/issues/941
@@ -319,9 +323,9 @@ class TextInput extends React.Component<TextInputProps, State> {
     }).start();
   };
 
-  private restoreLabel = () => {
-    const { scale } = this.props.theme.animation;
-    Animated.timing(this.state.labeled, {
+  const restoreLabel = () => {
+    const { scale } = rest.theme.animation;
+    Animated.timing(labeled, {
       toValue: 1,
       duration: FOCUS_ANIMATION_DURATION * scale,
       // To prevent this - https://github.com/callstack/react-native-paper/issues/941
@@ -332,9 +336,9 @@ class TextInput extends React.Component<TextInputProps, State> {
     }).start();
   };
 
-  private minimizeLabel = () => {
-    const { scale } = this.props.theme.animation;
-    Animated.timing(this.state.labeled, {
+  const minimizeLabel = () => {
+    const { scale } = rest.theme.animation;
+    Animated.timing(labeled, {
       toValue: 0,
       duration: BLUR_ANIMATION_DURATION * scale,
       // To prevent this - https://github.com/callstack/react-native-paper/issues/941
@@ -345,142 +349,122 @@ class TextInput extends React.Component<TextInputProps, State> {
     }).start();
   };
 
-  private onLeftAffixLayoutChange = (event: LayoutChangeEvent) => {
-    this.setState({
-      leftLayout: {
-        height: event.nativeEvent.layout.height,
-        width: event.nativeEvent.layout.width,
-      },
+  const onLeftAffixLayoutChange = (event: LayoutChangeEvent) => {
+    setLeftLayout({
+      height: event.nativeEvent.layout.height,
+      width: event.nativeEvent.layout.width,
     });
   };
 
-  private onRightAffixLayoutChange = (event: LayoutChangeEvent) => {
-    this.setState({
-      rightLayout: {
-        width: event.nativeEvent.layout.width,
-        height: event.nativeEvent.layout.height,
-      },
+  const onRightAffixLayoutChange = (event: LayoutChangeEvent) => {
+    setRightLayout({
+      width: event.nativeEvent.layout.width,
+      height: event.nativeEvent.layout.height,
     });
   };
 
-  private handleFocus = (args: any) => {
-    if (this.props.disabled || !this.props.editable) {
+  const handleFocus = (args: any) => {
+    if (disabled || !editable) {
       return;
     }
 
-    this.setState({ focused: true });
+    setFocused(true);
 
-    if (this.props.onFocus) {
-      this.props.onFocus(args);
-    }
+    rest.onFocus?.(args);
   };
 
-  private handleBlur = (args: Object) => {
-    if (this.props.disabled || !this.props.editable) {
+  const handleBlur = (args: Object) => {
+    if (disabled || !editable) {
       return;
     }
 
-    this.setState({ focused: false });
-
-    if (this.props.onBlur) {
-      this.props.onBlur(args);
-    }
+    setFocused(false);
+    rest.onBlur?.(args);
   };
 
-  private handleChangeText = (value: string) => {
-    if (!this.props.editable) {
+  const handleChangeText = (value: string) => {
+    if (!editable) {
       return;
     }
 
-    this.setState({ value });
-    this.props.onChangeText && this.props.onChangeText(value);
+    setValue(value);
+    rest.onChangeText?.(value);
   };
 
-  private handleLayoutAnimatedText = (e: LayoutChangeEvent) => {
-    this.setState({
-      labelLayout: {
-        width: e.nativeEvent.layout.width,
-        height: e.nativeEvent.layout.height,
-        measured: true,
-      },
+  const handleLayoutAnimatedText = (e: LayoutChangeEvent) => {
+    setLabelLayout({
+      width: e.nativeEvent.layout.width,
+      height: e.nativeEvent.layout.height,
+      measured: true,
     });
   };
+  const forceFocus = () => root.current?.focus();
 
-  forceFocus = () => {
-    return this.root?.focus();
-  };
+  return mode === 'outlined' ? (
+    <TextInputOutlined
+      {...rest}
+      value={value}
+      parentState={{
+        labeled,
+        error,
+        focused,
+        placeholder,
+        value,
+        labelLayout,
+        leftLayout,
+        rightLayout,
+      }}
+      innerRef={(ref) => {
+        root.current = ref;
+      }}
+      onFocus={handleFocus}
+      forceFocus={forceFocus}
+      onBlur={handleBlur}
+      onChangeText={handleChangeText}
+      onLayoutAnimatedText={handleLayoutAnimatedText}
+      onLeftAffixLayoutChange={onLeftAffixLayoutChange}
+      onRightAffixLayoutChange={onRightAffixLayoutChange}
+    />
+  ) : (
+    <TextInputFlat
+      dense={dense}
+      disabled={disabled}
+      error={errorProp}
+      multiline={multiline}
+      editable={editable}
+      render={render}
+      {...rest}
+      value={value}
+      parentState={{
+        labeled,
+        error,
+        focused,
+        placeholder,
+        value,
+        labelLayout,
+        leftLayout,
+        rightLayout,
+      }}
+      innerRef={(ref) => {
+        root.current = ref;
+      }}
+      onFocus={handleFocus}
+      forceFocus={forceFocus}
+      onBlur={handleBlur}
+      onChangeText={handleChangeText}
+      onLayoutAnimatedText={handleLayoutAnimatedText}
+      onLeftAffixLayoutChange={onLeftAffixLayoutChange}
+      onRightAffixLayoutChange={onRightAffixLayoutChange}
+    />
+  );
+};
+const TextInputComponent = React.forwardRef(TextInput) as CompoundedComponent;
 
-  /**
-   * @internal
-   */
-  setNativeProps(args: Object) {
-    return this.root && this.root.setNativeProps(args);
-  }
+// @component ./Adornment/Icon.tsx
+TextInputComponent.Icon = TextInputIcon;
 
-  /**
-   * Returns `true` if the input is currently focused, `false` otherwise.
-   */
-  isFocused() {
-    return this.root && this.root.isFocused();
-  }
+// @component ./Adornment/Affix.tsx
+// @ts-ignore
+TextInputComponent.Affix = TextInputAffix;
 
-  /**
-   * Removes all text from the TextInput.
-   */
-  clear() {
-    return this.root && this.root.clear();
-  }
-
-  /**
-   * Focuses the input.
-   */
-  focus() {
-    return this.root && this.root.focus();
-  }
-
-  /**
-   * Removes focus from the input.
-   */
-  blur() {
-    return this.root && this.root.blur();
-  }
-  render() {
-    const { mode, ...rest } = this.props as $Omit<TextInputProps, 'ref'>;
-
-    return mode === 'outlined' ? (
-      <TextInputOutlined
-        {...rest}
-        value={this.state.value}
-        parentState={this.state}
-        innerRef={(ref) => {
-          this.root = ref;
-        }}
-        onFocus={this.handleFocus}
-        forceFocus={this.forceFocus}
-        onBlur={this.handleBlur}
-        onChangeText={this.handleChangeText}
-        onLayoutAnimatedText={this.handleLayoutAnimatedText}
-        onLeftAffixLayoutChange={this.onLeftAffixLayoutChange}
-        onRightAffixLayoutChange={this.onRightAffixLayoutChange}
-      />
-    ) : (
-      <TextInputFlat
-        {...rest}
-        value={this.state.value}
-        parentState={this.state}
-        innerRef={(ref) => {
-          this.root = ref;
-        }}
-        onFocus={this.handleFocus}
-        forceFocus={this.forceFocus}
-        onBlur={this.handleBlur}
-        onChangeText={this.handleChangeText}
-        onLayoutAnimatedText={this.handleLayoutAnimatedText}
-        onLeftAffixLayoutChange={this.onLeftAffixLayoutChange}
-        onRightAffixLayoutChange={this.onRightAffixLayoutChange}
-      />
-    );
-  }
-}
-
-export default withTheme(TextInput);
+export default withTheme(TextInputComponent);
