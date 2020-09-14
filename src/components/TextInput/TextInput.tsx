@@ -377,7 +377,7 @@ const TextInput: React.RefForwardingComponent<
   };
 
   const handleChangeText = (value: string) => {
-    if (!editable) {
+    if (!editable || disabled) {
       return;
     }
 
@@ -396,6 +396,12 @@ const TextInput: React.RefForwardingComponent<
 
   return mode === 'outlined' ? (
     <TextInputOutlined
+      dense={dense}
+      disabled={disabled}
+      error={errorProp}
+      multiline={multiline}
+      editable={editable}
+      render={render}
       {...rest}
       value={value}
       parentState={{
