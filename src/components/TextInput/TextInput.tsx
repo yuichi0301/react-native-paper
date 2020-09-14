@@ -241,9 +241,11 @@ const TextInput: React.RefForwardingComponent<
     height: null,
   });
 
-  let { current: timer } = React.useRef<NodeJS.Timeout | undefined>();
+  const timer = React.useRef<NodeJS.Timeout | undefined>();
 
   const root = React.useRef<NativeTextInput | undefined | null>();
+
+  const { scale } = rest.theme.animation;
 
   React.useImperativeHandle(ref, () => ({
     focus: () => root.current?.focus(),
@@ -260,94 +262,86 @@ const TextInput: React.RefForwardingComponent<
 
   React.useEffect(() => {
     // When the input has an error, we wiggle the label and apply error styles
-    if (errorProp) showError();
-    else hideError();
-  }, [errorProp]);
+    if (errorProp) {
+      // show error
+      Animated.timing(error, {
+        toValue: 1,
+        duration: FOCUS_ANIMATION_DURATION * scale,
+        // To prevent this - https://github.com/callstack/react-native-paper/issues/941
+        useNativeDriver: Platform.select({
+          ios: false,
+          default: true,
+        }),
+      }).start(hidePlaceholder);
+    } else {
+      // hide error
+      {
+        Animated.timing(error, {
+          toValue: 0,
+          duration: BLUR_ANIMATION_DURATION * scale,
+          // To prevent this - https://github.com/callstack/react-native-paper/issues/941
+          useNativeDriver: Platform.select({
+            ios: false,
+            default: true,
+          }),
+        }).start();
+      }
+    }
+  }, [errorProp, scale, error]);
 
   React.useEffect(() => {
     // Show placeholder text only if the input is focused, or there's no label
     // We don't show placeholder if there's a label because the label acts as placeholder
     // When focused, the label moves up, so we can show a placeholder
-    if (focused || !rest.label) showPlaceholder();
-    else hidePlaceholder();
-  }, [focused, rest.label]);
+    if (focused || !rest.label) {
+      // show placeholder
+      if (timer.current) clearTimeout(timer.current);
+
+      // Set the placeholder in a delay to offset the label animation
+      // If we show it immediately, they'll overlap and look ugly
+      timer.current = setTimeout(() => setPlaceholder(rest.placeholder), 50);
+    } else hidePlaceholder();
+  }, [focused, rest.label, rest.placeholder]);
 
   React.useEffect(() => {
     // The label should be minimized if the text input is focused, or has text
     // In minimized mode, the label moves up and becomes small
     // workaround for animated regression for react native > 0.61
     // https://github.com/callstack/react-native-paper/pull/1440
-    if (value || focused) minimizeLabel();
-    else restoreLabel();
-  }, [focused, value, labelLayout]);
+    if (value || focused) {
+      // minimize label
+      Animated.timing(labeled, {
+        toValue: 0,
+        duration: BLUR_ANIMATION_DURATION * scale,
+        // To prevent this - https://github.com/callstack/react-native-paper/issues/941
+        useNativeDriver: Platform.select({
+          ios: false,
+          default: true,
+        }),
+      }).start();
+    } else {
+      // restore label
+      {
+        Animated.timing(labeled, {
+          toValue: 1,
+          duration: FOCUS_ANIMATION_DURATION * scale,
+          // To prevent this - https://github.com/callstack/react-native-paper/issues/941
+          useNativeDriver: Platform.select({
+            ios: false,
+            default: true,
+          }),
+        }).start();
+      }
+    }
+  }, [focused, value, labelLayout, labeled, scale]);
 
   React.useEffect(() => {
     return () => {
-      if (timer) clearTimeout(timer);
+      if (timer.current) clearTimeout(timer.current);
     };
   }, []);
 
-  const showPlaceholder = () => {
-    if (timer) clearTimeout(timer);
-
-    // Set the placeholder in a delay to offset the label animation
-    // If we show it immediately, they'll overlap and look ugly
-    timer = setTimeout(() => setPlaceholder(rest.placeholder), 50);
-  };
-
   const hidePlaceholder = () => setPlaceholder('');
-
-  const showError = () => {
-    const { scale } = rest.theme.animation;
-    Animated.timing(error, {
-      toValue: 1,
-      duration: FOCUS_ANIMATION_DURATION * scale,
-      // To prevent this - https://github.com/callstack/react-native-paper/issues/941
-      useNativeDriver: Platform.select({
-        ios: false,
-        default: true,
-      }),
-    }).start(hidePlaceholder);
-  };
-
-  const hideError = () => {
-    const { scale } = rest.theme.animation;
-    Animated.timing(error, {
-      toValue: 0,
-      duration: BLUR_ANIMATION_DURATION * scale,
-      // To prevent this - https://github.com/callstack/react-native-paper/issues/941
-      useNativeDriver: Platform.select({
-        ios: false,
-        default: true,
-      }),
-    }).start();
-  };
-
-  const restoreLabel = () => {
-    const { scale } = rest.theme.animation;
-    Animated.timing(labeled, {
-      toValue: 1,
-      duration: FOCUS_ANIMATION_DURATION * scale,
-      // To prevent this - https://github.com/callstack/react-native-paper/issues/941
-      useNativeDriver: Platform.select({
-        ios: false,
-        default: true,
-      }),
-    }).start();
-  };
-
-  const minimizeLabel = () => {
-    const { scale } = rest.theme.animation;
-    Animated.timing(labeled, {
-      toValue: 0,
-      duration: BLUR_ANIMATION_DURATION * scale,
-      // To prevent this - https://github.com/callstack/react-native-paper/issues/941
-      useNativeDriver: Platform.select({
-        ios: false,
-        default: true,
-      }),
-    }).start();
-  };
 
   const onLeftAffixLayoutChange = (event: LayoutChangeEvent) => {
     setLeftLayout({
