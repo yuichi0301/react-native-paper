@@ -130,14 +130,10 @@ interface CompoundedComponent
   Affix: React.FunctionComponent<Partial<TextInputAffixProps>>;
 }
 
-interface TextInputHandles {
-  forceFocus(): void;
-  focus(): void; // Focuses the input.
-  clear(): void; //Removes all text from the TextInput.
-  blur(): void; // Removes focus from the input.
-  isFocused(): boolean; // Returns `true` if the input is currently focused, `false` otherwise.
-  setNativeProps(args: Object): void; // @internal
-}
+type TextInputHandles = Pick<
+  NativeTextInput,
+  'focus' | 'clear' | 'blur' | 'isFocused' | 'setNativeProps'
+>;
 
 /**
  * A component to allow users to input text.
@@ -184,99 +180,130 @@ interface TextInputHandles {
  * @extends TextInput props https://facebook.github.io/react-native/docs/textinput.html#props
  */
 
-const TextInput: React.RefForwardingComponent<
-  TextInputHandles,
-  TextInputProps
-> /* & {
-  Icon: React.FunctionComponent<TextInputIconProps>;
-  Affix: React.FunctionComponent<TextInputAffixProps>;
-} */ = (
-  {
-    mode = 'flat',
-    dense = false,
-    disabled = false,
-    error: errorProp = false,
-    multiline = false,
-    editable = true,
-    render = (props: RenderProps) => <NativeTextInput {...props} />,
-    ...rest
-  }: TextInputProps,
-  ref
-) => {
-  const validInputValue =
-    rest.value !== undefined ? rest.value : rest.defaultValue;
+const TextInput = React.forwardRef<TextInputHandles, TextInputProps>(
+  (
+    {
+      mode = 'flat',
+      dense = false,
+      disabled = false,
+      error: errorProp = false,
+      multiline = false,
+      editable = true,
+      render = (props: RenderProps) => <NativeTextInput {...props} />,
+      ...rest
+    }: TextInputProps,
+    ref
+  ) => {
+    const validInputValue =
+      rest.value !== undefined ? rest.value : rest.defaultValue;
 
-  const { current: labeled } = React.useRef<Animated.Value>(
-    new Animated.Value(validInputValue ? 0 : 1)
-  );
-  const { current: error } = React.useRef<Animated.Value>(
-    new Animated.Value(errorProp ? 1 : 0)
-  );
-  const [focused, setFocused] = React.useState<boolean>(false);
-  const [placeholder, setPlaceholder] = React.useState<
-    string | null | undefined
-  >('');
-  const [value, setValue] = React.useState<string | undefined>(validInputValue);
-  const [labelLayout, setLabelLayout] = React.useState<{
-    measured: boolean;
-    width: number;
-    height: number;
-  }>({
-    measured: false,
-    width: 0,
-    height: 0,
-  });
-  const [leftLayout, setLeftLayout] = React.useState<{
-    height: number | null;
-    width: number | null;
-  }>({
-    width: null,
-    height: null,
-  });
-  const [rightLayout, setRightLayout] = React.useState<{
-    height: number | null;
-    width: number | null;
-  }>({
-    width: null,
-    height: null,
-  });
+    const { current: labeled } = React.useRef<Animated.Value>(
+      new Animated.Value(validInputValue ? 0 : 1)
+    );
+    const { current: error } = React.useRef<Animated.Value>(
+      new Animated.Value(errorProp ? 1 : 0)
+    );
+    const [focused, setFocused] = React.useState<boolean>(false);
+    const [placeholder, setPlaceholder] = React.useState<
+      string | null | undefined
+    >('');
+    const [value, setValue] = React.useState<string | undefined>(
+      validInputValue
+    );
+    const [labelLayout, setLabelLayout] = React.useState<{
+      measured: boolean;
+      width: number;
+      height: number;
+    }>({
+      measured: false,
+      width: 0,
+      height: 0,
+    });
+    const [leftLayout, setLeftLayout] = React.useState<{
+      height: number | null;
+      width: number | null;
+    }>({
+      width: null,
+      height: null,
+    });
+    const [rightLayout, setRightLayout] = React.useState<{
+      height: number | null;
+      width: number | null;
+    }>({
+      width: null,
+      height: null,
+    });
 
-  const timer = React.useRef<NodeJS.Timeout | undefined>();
+    const timer = React.useRef<NodeJS.Timeout | undefined>();
 
-  const root = React.useRef<NativeTextInput | undefined | null>();
+    const root = React.useRef<NativeTextInput | undefined | null>();
 
-  const { scale } = rest.theme.animation;
+    const { scale } = rest.theme.animation;
 
-  React.useImperativeHandle(ref, () => ({
-    focus: () => root.current?.focus(),
-    clear: () => root.current?.clear(),
-    setNativeProps: (args: Object) => root.current?.setNativeProps(args),
-    isFocused: () => root.current?.isFocused() || false,
-    blur: () => root.current?.blur(),
-    forceFocus: () => root.current?.focus(),
-  }));
+    React.useImperativeHandle(ref, () => ({
+      focus: () => root.current?.focus(),
+      clear: () => root.current?.clear(),
+      setNativeProps: (args: Object) => root.current?.setNativeProps(args),
+      isFocused: () => root.current?.isFocused() || false,
+      blur: () => root.current?.blur(),
+      forceFocus: () => root.current?.focus(),
+    }));
 
-  React.useLayoutEffect(() => {
-    if (typeof rest.value !== 'undefined') setValue(rest.value);
-  }, [rest.value]);
+    React.useLayoutEffect(() => {
+      if (typeof rest.value !== 'undefined') setValue(rest.value);
+    }, [rest.value]);
 
-  React.useEffect(() => {
-    // When the input has an error, we wiggle the label and apply error styles
-    if (errorProp) {
-      // show error
-      Animated.timing(error, {
-        toValue: 1,
-        duration: FOCUS_ANIMATION_DURATION * scale,
-        // To prevent this - https://github.com/callstack/react-native-paper/issues/941
-        useNativeDriver: Platform.select({
-          ios: false,
-          default: true,
-        }),
-      }).start(hidePlaceholder);
-    } else {
-      // hide error
-      {
+    React.useEffect(() => {
+      // When the input has an error, we wiggle the label and apply error styles
+      if (errorProp) {
+        // show error
         Animated.timing(error, {
+          toValue: 1,
+          duration: FOCUS_ANIMATION_DURATION * scale,
+          // To prevent this - https://github.com/callstack/react-native-paper/issues/941
+          useNativeDriver: Platform.select({
+            ios: false,
+            default: true,
+          }),
+        }).start(hidePlaceholder);
+      } else {
+        // hide error
+        {
+          Animated.timing(error, {
+            toValue: 0,
+            duration: BLUR_ANIMATION_DURATION * scale,
+            // To prevent this - https://github.com/callstack/react-native-paper/issues/941
+            useNativeDriver: Platform.select({
+              ios: false,
+              default: true,
+            }),
+          }).start();
+        }
+      }
+    }, [errorProp, scale, error]);
+
+    React.useEffect(() => {
+      // Show placeholder text only if the input is focused, or there's no label
+      // We don't show placeholder if there's a label because the label acts as placeholder
+      // When focused, the label moves up, so we can show a placeholder
+      if (focused || !rest.label) {
+        // show placeholder
+        if (timer.current) clearTimeout(timer.current);
+
+        // Set the placeholder in a delay to offset the label animation
+        // If we show it immediately, they'll overlap and look ugly
+        timer.current = setTimeout(() => setPlaceholder(rest.placeholder), 50);
+      } else hidePlaceholder();
+    }, [focused, rest.label, rest.placeholder]);
+
+    React.useEffect(() => {
+      // The label should be minimized if the text input is focused, or has text
+      // In minimized mode, the label moves up and becomes small
+      // workaround for animated regression for react native > 0.61
+      // https://github.com/callstack/react-native-paper/pull/1440
+      if (value || focused) {
+        // minimize label
+        Animated.timing(labeled, {
           toValue: 0,
           duration: BLUR_ANIMATION_DURATION * scale,
           // To prevent this - https://github.com/callstack/react-native-paper/issues/941
@@ -285,186 +312,151 @@ const TextInput: React.RefForwardingComponent<
             default: true,
           }),
         }).start();
+      } else {
+        // restore label
+        {
+          Animated.timing(labeled, {
+            toValue: 1,
+            duration: FOCUS_ANIMATION_DURATION * scale,
+            // To prevent this - https://github.com/callstack/react-native-paper/issues/941
+            useNativeDriver: Platform.select({
+              ios: false,
+              default: true,
+            }),
+          }).start();
+        }
       }
-    }
-  }, [errorProp, scale, error]);
+    }, [focused, value, labelLayout, labeled, scale]);
 
-  React.useEffect(() => {
-    // Show placeholder text only if the input is focused, or there's no label
-    // We don't show placeholder if there's a label because the label acts as placeholder
-    // When focused, the label moves up, so we can show a placeholder
-    if (focused || !rest.label) {
-      // show placeholder
-      if (timer.current) clearTimeout(timer.current);
+    React.useEffect(() => {
+      return () => {
+        if (timer.current) clearTimeout(timer.current);
+      };
+    }, []);
 
-      // Set the placeholder in a delay to offset the label animation
-      // If we show it immediately, they'll overlap and look ugly
-      timer.current = setTimeout(() => setPlaceholder(rest.placeholder), 50);
-    } else hidePlaceholder();
-  }, [focused, rest.label, rest.placeholder]);
+    const hidePlaceholder = () => setPlaceholder('');
 
-  React.useEffect(() => {
-    // The label should be minimized if the text input is focused, or has text
-    // In minimized mode, the label moves up and becomes small
-    // workaround for animated regression for react native > 0.61
-    // https://github.com/callstack/react-native-paper/pull/1440
-    if (value || focused) {
-      // minimize label
-      Animated.timing(labeled, {
-        toValue: 0,
-        duration: BLUR_ANIMATION_DURATION * scale,
-        // To prevent this - https://github.com/callstack/react-native-paper/issues/941
-        useNativeDriver: Platform.select({
-          ios: false,
-          default: true,
-        }),
-      }).start();
-    } else {
-      // restore label
-      {
-        Animated.timing(labeled, {
-          toValue: 1,
-          duration: FOCUS_ANIMATION_DURATION * scale,
-          // To prevent this - https://github.com/callstack/react-native-paper/issues/941
-          useNativeDriver: Platform.select({
-            ios: false,
-            default: true,
-          }),
-        }).start();
-      }
-    }
-  }, [focused, value, labelLayout, labeled, scale]);
-
-  React.useEffect(() => {
-    return () => {
-      if (timer.current) clearTimeout(timer.current);
+    const onLeftAffixLayoutChange = (event: LayoutChangeEvent) => {
+      setLeftLayout({
+        height: event.nativeEvent.layout.height,
+        width: event.nativeEvent.layout.width,
+      });
     };
-  }, []);
 
-  const hidePlaceholder = () => setPlaceholder('');
+    const onRightAffixLayoutChange = (event: LayoutChangeEvent) => {
+      setRightLayout({
+        width: event.nativeEvent.layout.width,
+        height: event.nativeEvent.layout.height,
+      });
+    };
 
-  const onLeftAffixLayoutChange = (event: LayoutChangeEvent) => {
-    setLeftLayout({
-      height: event.nativeEvent.layout.height,
-      width: event.nativeEvent.layout.width,
-    });
-  };
+    const handleFocus = (args: any) => {
+      if (disabled || !editable) {
+        return;
+      }
 
-  const onRightAffixLayoutChange = (event: LayoutChangeEvent) => {
-    setRightLayout({
-      width: event.nativeEvent.layout.width,
-      height: event.nativeEvent.layout.height,
-    });
-  };
+      setFocused(true);
 
-  const handleFocus = (args: any) => {
-    if (disabled || !editable) {
-      return;
-    }
+      rest.onFocus?.(args);
+    };
 
-    setFocused(true);
+    const handleBlur = (args: Object) => {
+      if (disabled || !editable) {
+        return;
+      }
 
-    rest.onFocus?.(args);
-  };
+      setFocused(false);
+      rest.onBlur?.(args);
+    };
 
-  const handleBlur = (args: Object) => {
-    if (disabled || !editable) {
-      return;
-    }
+    const handleChangeText = (value: string) => {
+      if (!editable || disabled) {
+        return;
+      }
 
-    setFocused(false);
-    rest.onBlur?.(args);
-  };
+      setValue(value);
+      rest.onChangeText?.(value);
+    };
 
-  const handleChangeText = (value: string) => {
-    if (!editable || disabled) {
-      return;
-    }
+    const handleLayoutAnimatedText = (e: LayoutChangeEvent) => {
+      setLabelLayout({
+        width: e.nativeEvent.layout.width,
+        height: e.nativeEvent.layout.height,
+        measured: true,
+      });
+    };
+    const forceFocus = () => root.current?.focus();
 
-    setValue(value);
-    rest.onChangeText?.(value);
-  };
-
-  const handleLayoutAnimatedText = (e: LayoutChangeEvent) => {
-    setLabelLayout({
-      width: e.nativeEvent.layout.width,
-      height: e.nativeEvent.layout.height,
-      measured: true,
-    });
-  };
-  const forceFocus = () => root.current?.focus();
-
-  return mode === 'outlined' ? (
-    <TextInputOutlined
-      dense={dense}
-      disabled={disabled}
-      error={errorProp}
-      multiline={multiline}
-      editable={editable}
-      render={render}
-      {...rest}
-      value={value}
-      parentState={{
-        labeled,
-        error,
-        focused,
-        placeholder,
-        value,
-        labelLayout,
-        leftLayout,
-        rightLayout,
-      }}
-      innerRef={(ref) => {
-        root.current = ref;
-      }}
-      onFocus={handleFocus}
-      forceFocus={forceFocus}
-      onBlur={handleBlur}
-      onChangeText={handleChangeText}
-      onLayoutAnimatedText={handleLayoutAnimatedText}
-      onLeftAffixLayoutChange={onLeftAffixLayoutChange}
-      onRightAffixLayoutChange={onRightAffixLayoutChange}
-    />
-  ) : (
-    <TextInputFlat
-      dense={dense}
-      disabled={disabled}
-      error={errorProp}
-      multiline={multiline}
-      editable={editable}
-      render={render}
-      {...rest}
-      value={value}
-      parentState={{
-        labeled,
-        error,
-        focused,
-        placeholder,
-        value,
-        labelLayout,
-        leftLayout,
-        rightLayout,
-      }}
-      innerRef={(ref) => {
-        root.current = ref;
-      }}
-      onFocus={handleFocus}
-      forceFocus={forceFocus}
-      onBlur={handleBlur}
-      onChangeText={handleChangeText}
-      onLayoutAnimatedText={handleLayoutAnimatedText}
-      onLeftAffixLayoutChange={onLeftAffixLayoutChange}
-      onRightAffixLayoutChange={onRightAffixLayoutChange}
-    />
-  );
-};
-const TextInputComponent = React.forwardRef(TextInput) as CompoundedComponent;
-
+    return mode === 'outlined' ? (
+      <TextInputOutlined
+        dense={dense}
+        disabled={disabled}
+        error={errorProp}
+        multiline={multiline}
+        editable={editable}
+        render={render}
+        {...rest}
+        value={value}
+        parentState={{
+          labeled,
+          error,
+          focused,
+          placeholder,
+          value,
+          labelLayout,
+          leftLayout,
+          rightLayout,
+        }}
+        innerRef={(ref) => {
+          root.current = ref;
+        }}
+        onFocus={handleFocus}
+        forceFocus={forceFocus}
+        onBlur={handleBlur}
+        onChangeText={handleChangeText}
+        onLayoutAnimatedText={handleLayoutAnimatedText}
+        onLeftAffixLayoutChange={onLeftAffixLayoutChange}
+        onRightAffixLayoutChange={onRightAffixLayoutChange}
+      />
+    ) : (
+      <TextInputFlat
+        dense={dense}
+        disabled={disabled}
+        error={errorProp}
+        multiline={multiline}
+        editable={editable}
+        render={render}
+        {...rest}
+        value={value}
+        parentState={{
+          labeled,
+          error,
+          focused,
+          placeholder,
+          value,
+          labelLayout,
+          leftLayout,
+          rightLayout,
+        }}
+        innerRef={(ref) => {
+          root.current = ref;
+        }}
+        onFocus={handleFocus}
+        forceFocus={forceFocus}
+        onBlur={handleBlur}
+        onChangeText={handleChangeText}
+        onLayoutAnimatedText={handleLayoutAnimatedText}
+        onLeftAffixLayoutChange={onLeftAffixLayoutChange}
+        onRightAffixLayoutChange={onRightAffixLayoutChange}
+      />
+    );
+  }
+) as CompoundedComponent;
 // @component ./Adornment/Icon.tsx
-TextInputComponent.Icon = TextInputIcon;
+TextInput.Icon = TextInputIcon;
 
 // @component ./Adornment/Affix.tsx
 // @ts-ignore
-TextInputComponent.Affix = TextInputAffix;
+TextInput.Affix = TextInputAffix;
 
-export default withTheme(TextInputComponent);
+export default withTheme(TextInput);
