@@ -28,7 +28,7 @@ export type State = {
   labeled: Animated.Value;
   error: Animated.Value;
   focused: boolean;
-  placeholder: string | null | undefined;
+  placeholder: string | undefined;
   value: string | null | undefined;
   labelLayout: { measured: boolean; width: number; height: number };
   leftLayout: { height: number | null; width: number | null };

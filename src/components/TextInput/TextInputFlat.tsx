@@ -309,7 +309,6 @@ const TextInputFlat = ({
           ...rest,
           ref: innerRef,
           onChangeText,
-          // @ts-ignore
           placeholder: label ? parentState.placeholder : rest.placeholder,
           placeholderTextColor: placeholderTextColor || placeholderColor,
           editable: !disabled && editable,

@@ -204,9 +204,9 @@ const TextInput = React.forwardRef<TextInputHandles, TextInputProps>(
       new Animated.Value(errorProp ? 1 : 0)
     );
     const [focused, setFocused] = React.useState<boolean>(false);
-    const [placeholder, setPlaceholder] = React.useState<
-      string | null | undefined
-    >('');
+    const [placeholder, setPlaceholder] = React.useState<string | undefined>(
+      ''
+    );
     const [value, setValue] = React.useState<string | undefined>(
       validInputValue
     );
@@ -326,7 +326,7 @@ const TextInput = React.forwardRef<TextInputHandles, TextInputProps>(
           }).start();
         }
       }
-    }, [focused, value, labelLayout, labeled, scale]);
+    }, [focused, value, labeled, scale]);
 
     React.useEffect(() => {
       return () => {
@@ -456,7 +456,7 @@ const TextInput = React.forwardRef<TextInputHandles, TextInputProps>(
 TextInput.Icon = TextInputIcon;
 
 // @component ./Adornment/Affix.tsx
-// @ts-ignore
+// @ts-ignore Types of property 'theme' are incompatible.
 TextInput.Affix = TextInputAffix;
 
 export default withTheme(TextInput);
