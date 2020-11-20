@@ -162,10 +162,11 @@ const TextInputOutlined = ({
   const baseLabelTranslateY =
     -labelHalfHeight - (topPosition + OUTLINE_MINIMIZED_LABEL_Y_OFFSET);
 
-  const placeholderOpacity = interpolatePlaceholder(
-    parentState.labeled,
-    hasActiveOutline
-  );
+  const placeholderOpacity = hasActiveOutline
+    ? interpolatePlaceholder(parentState.labeled, hasActiveOutline)
+    : parentState.labelLayout.measured
+    ? 1
+    : 0;
 
   const labelProps = {
     label,
@@ -224,6 +225,7 @@ const TextInputOutlined = ({
       adornmentConfig,
       rightAffixWidth,
       leftAffixWidth,
+      mode: 'outlined',
     }
   );
   const affixTopPosition = {

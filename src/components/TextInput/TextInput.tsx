@@ -9,10 +9,12 @@ import {
 } from 'react-native';
 import TextInputOutlined from './TextInputOutlined';
 import TextInputFlat from './TextInputFlat';
-import TextInputIcon, { Props as TextInputIconProps } from './Adornment/Icon';
+import TextInputIcon, {
+  Props as TextInputIconProps,
+} from './Adornment/TextInputIcon';
 import TextInputAffix, {
   Props as TextInputAffixProps,
-} from './Adornment/Affix';
+} from './Adornment/TextInputAffix';
 import { withTheme } from '../../core/theming';
 import type { RenderProps } from './types';
 
@@ -452,10 +454,10 @@ const TextInput = React.forwardRef<TextInputHandles, TextInputProps>(
     );
   }
 ) as CompoundedComponent;
-// @component ./Adornment/Icon.tsx
+// @component ./Adornment/TextInputIcon.tsx
 TextInput.Icon = TextInputIcon;
 
-// @component ./Adornment/Affix.tsx
+// @component ./Adornment/TextInputAffix.tsx
 // @ts-ignore Types of property 'theme' are incompatible.
 TextInput.Affix = TextInputAffix;
 

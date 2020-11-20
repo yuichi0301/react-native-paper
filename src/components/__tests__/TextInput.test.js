@@ -20,7 +20,12 @@ it('correctly renders left-side icon adornment, and right-side affix adornment',
           }}
         />
       }
-      right={<TextInput.Affix text={affixTextValue} />}
+      right={
+        <TextInput.Affix
+          text={affixTextValue}
+          textStyle={{ color: '#FF0000' }}
+        />
+      }
     />
   );
   expect(() => getByText(affixTextValue)).not.toThrow();
@@ -36,7 +41,12 @@ it('correctly renders left-side icon adornment, and right-side affix adornment '
       placeholder="Type something"
       value={'Some test value'}
       onChangeText={(text) => this.setState({ text })}
-      left={<TextInput.Affix text={affixTextValue} />}
+      left={
+        <TextInput.Affix
+          text={affixTextValue}
+          textStyle={{ color: '#FF0000' }}
+        />
+      }
       right={
         <TextInput.Icon
           name="heart"
