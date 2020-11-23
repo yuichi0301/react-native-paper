@@ -267,7 +267,7 @@ const TextInput = React.forwardRef<TextInputHandles, TextInputProps>(
             ios: false,
             default: true,
           }),
-        }).start(hidePlaceholder);
+        }).start();
       } else {
         // hide error
         {
@@ -290,12 +290,17 @@ const TextInput = React.forwardRef<TextInputHandles, TextInputProps>(
       // When focused, the label moves up, so we can show a placeholder
       if (focused || !rest.label) {
         // show placeholder
-        if (timer.current) clearTimeout(timer.current);
+        if (timer.current) {
+          clearTimeout(timer.current);
+        }
 
         // Set the placeholder in a delay to offset the label animation
         // If we show it immediately, they'll overlap and look ugly
         timer.current = setTimeout(() => setPlaceholder(rest.placeholder), 50);
-      } else hidePlaceholder();
+      } else {
+        // hidePlaceholder
+        setPlaceholder('');
+      }
     }, [focused, rest.label, rest.placeholder]);
 
     React.useEffect(() => {
@@ -336,8 +341,6 @@ const TextInput = React.forwardRef<TextInputHandles, TextInputProps>(
       };
     }, []);
 
-    const hidePlaceholder = () => setPlaceholder('');
-
     const onLeftAffixLayoutChange = (event: LayoutChangeEvent) => {
       setLeftLayout({
         height: event.nativeEvent.layout.height,
@@ -363,7 +366,7 @@ const TextInput = React.forwardRef<TextInputHandles, TextInputProps>(
     };
 
     const handleBlur = (args: Object) => {
-      if (disabled || !editable) {
+      if (!editable) {
         return;
       }
 
