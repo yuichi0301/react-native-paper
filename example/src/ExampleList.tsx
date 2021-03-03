@@ -37,11 +37,13 @@ import ToggleButtonExample from './Examples/ToggleButtonExample';
 import TouchableRippleExample from './Examples/TouchableRippleExample';
 import ThemeExample from './Examples/ThemeExample';
 import RadioButtonItemExample from './Examples/RadioButtonItemExample';
+import AnimatedFABExample from './Examples/AnimatedFABExample';
 
 export const examples: Record<
   string,
   React.ComponentType<any> & { title: string }
 > = {
+  animatedFAB: AnimatedFABExample,
   activityIndicator: ActivityIndicatorExample,
   appbar: AppbarExample,
   avatar: AvatarExample,
@@ -109,6 +111,7 @@ export default function ExampleList({ navigation }: Props) {
         backgroundColor: colors.background,
         paddingBottom: safeArea.bottom,
       }}
+      style={{ backgroundColor: colors.background }}
       ItemSeparatorComponent={Divider}
       renderItem={renderItem}
       keyExtractor={keyExtractor}
