@@ -32,11 +32,15 @@ exports[`correctly applies default textAlign based on default RTL 1`] = `
   />
   <View
     style={
-      Object {
-        "minHeight": 64,
-        "paddingBottom": 0,
-        "paddingTop": 0,
-      }
+      Array [
+        Object {
+          "paddingBottom": 0,
+          "paddingTop": 0,
+        },
+        Object {
+          "minHeight": 64,
+        },
+      ]
     }
   >
     <View
@@ -204,11 +208,15 @@ exports[`correctly applies textAlign center 1`] = `
   />
   <View
     style={
-      Object {
-        "minHeight": 64,
-        "paddingBottom": 0,
-        "paddingTop": 0,
-      }
+      Array [
+        Object {
+          "paddingBottom": 0,
+          "paddingTop": 0,
+        },
+        Object {
+          "minHeight": 64,
+        },
+      ]
     }
   >
     <View
@@ -376,11 +384,15 @@ exports[`correctly renders left-side icon adornment, and right-side affix adornm
   />
   <View
     style={
-      Object {
-        "minHeight": 64,
-        "paddingBottom": 0,
-        "paddingTop": 0,
-      }
+      Array [
+        Object {
+          "paddingBottom": 0,
+          "paddingTop": 0,
+        },
+        Object {
+          "minHeight": 64,
+        },
+      ]
     }
   >
     <View
@@ -621,6 +633,7 @@ exports[`correctly renders left-side icon adornment, and right-side affix adornm
           allowFontScaling={false}
           importantForAccessibility="no-hide-descendants"
           pointerEvents="none"
+          selectable={false}
           style={
             Array [
               Object {
@@ -689,11 +702,15 @@ exports[`correctly renders left-side icon adornment, and right-side affix adornm
   />
   <View
     style={
-      Object {
-        "minHeight": 64,
-        "paddingBottom": 0,
-        "paddingTop": 0,
-      }
+      Array [
+        Object {
+          "paddingBottom": 0,
+          "paddingTop": 0,
+        },
+        Object {
+          "minHeight": 64,
+        },
+      ]
     }
   >
     <View
@@ -901,6 +918,7 @@ exports[`correctly renders left-side icon adornment, and right-side affix adornm
           allowFontScaling={false}
           importantForAccessibility="no-hide-descendants"
           pointerEvents="none"
+          selectable={false}
           style={
             Array [
               Object {

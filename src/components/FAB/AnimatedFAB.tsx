@@ -21,6 +21,9 @@ import type { IconSource } from './../Icon';
 import type { AccessibilityState, TextLayoutEvent } from 'react-native';
 import { white, black } from '../../styles/colors';
 import AnimatedText from '../Typography/AnimatedText';
+import getContrastingColor from '../../utils/getContrastingColor';
+
+getContrastingColor;
 
 type Props = $RemoveChildren<typeof Surface> & {
   /**
@@ -142,8 +145,9 @@ const AnimatedFAB = ({
     .rgb()
     .string();
 
-  const { backgroundColor = disabled ? disabledColor : theme.colors.accent } =
-    StyleSheet.flatten(style) || {};
+  const {
+    backgroundColor = disabled ? disabledColor : theme.colors.accent,
+  } = (StyleSheet.flatten(style) || {}) as ViewStyle;
 
   let foregroundColor;
 
@@ -155,9 +159,11 @@ const AnimatedFAB = ({
       .rgb()
       .string();
   } else {
-    foregroundColor = !color(backgroundColor).isLight()
-      ? white
-      : 'rgba(0, 0, 0, .54)';
+    foregroundColor = getContrastingColor(
+      backgroundColor,
+      white,
+      'rgba(0, 0, 0, .54)'
+    );
   }
 
   const rippleColor = color(foregroundColor).alpha(0.32).rgb().string();
@@ -307,6 +313,7 @@ const AnimatedFAB = ({
               rippleColor={rippleColor}
               disabled={disabled}
               accessibilityLabel={accessibilityLabel}
+              // @ts-expect-error We keep old a11y props for backwards compat with old RN versions
               accessibilityTraits={disabled ? ['button', 'disabled'] : 'button'}
               accessibilityComponentType="button"
               accessibilityRole="button"

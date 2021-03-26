@@ -60,6 +60,8 @@ exports[`renders list section with custom title style 1`] = `
           "color": "#000000",
           "fontFamily": "System",
           "fontWeight": "400",
+        },
+        Object {
           "textAlign": "left",
         },
         Array [
@@ -134,6 +136,7 @@ exports[`renders list section with custom title style 1`] = `
           allowFontScaling={false}
           importantForAccessibility="no-hide-descendants"
           pointerEvents="none"
+          selectable={false}
           style={
             Array [
               Object {
@@ -188,6 +191,8 @@ exports[`renders list section with custom title style 1`] = `
                 "color": "#000000",
                 "fontFamily": "System",
                 "fontWeight": "400",
+              },
+              Object {
                 "textAlign": "left",
               },
               Array [
@@ -260,6 +265,7 @@ exports[`renders list section with custom title style 1`] = `
           allowFontScaling={false}
           importantForAccessibility="no-hide-descendants"
           pointerEvents="none"
+          selectable={false}
           style={
             Array [
               Object {
@@ -314,6 +320,8 @@ exports[`renders list section with custom title style 1`] = `
                 "color": "#000000",
                 "fontFamily": "System",
                 "fontWeight": "400",
+              },
+              Object {
                 "textAlign": "left",
               },
               Array [
@@ -396,6 +404,8 @@ exports[`renders list section with subheader 1`] = `
           "color": "#000000",
           "fontFamily": "System",
           "fontWeight": "400",
+        },
+        Object {
           "textAlign": "left",
         },
         Array [
@@ -468,6 +478,7 @@ exports[`renders list section with subheader 1`] = `
           allowFontScaling={false}
           importantForAccessibility="no-hide-descendants"
           pointerEvents="none"
+          selectable={false}
           style={
             Array [
               Object {
@@ -522,6 +533,8 @@ exports[`renders list section with subheader 1`] = `
                 "color": "#000000",
                 "fontFamily": "System",
                 "fontWeight": "400",
+              },
+              Object {
                 "textAlign": "left",
               },
               Array [
@@ -594,6 +607,7 @@ exports[`renders list section with subheader 1`] = `
           allowFontScaling={false}
           importantForAccessibility="no-hide-descendants"
           pointerEvents="none"
+          selectable={false}
           style={
             Array [
               Object {
@@ -648,6 +662,8 @@ exports[`renders list section with subheader 1`] = `
                 "color": "#000000",
                 "fontFamily": "System",
                 "fontWeight": "400",
+              },
+              Object {
                 "textAlign": "left",
               },
               Array [
@@ -775,6 +791,7 @@ exports[`renders list section without subheader 1`] = `
           allowFontScaling={false}
           importantForAccessibility="no-hide-descendants"
           pointerEvents="none"
+          selectable={false}
           style={
             Array [
               Object {
@@ -829,6 +846,8 @@ exports[`renders list section without subheader 1`] = `
                 "color": "#000000",
                 "fontFamily": "System",
                 "fontWeight": "400",
+              },
+              Object {
                 "textAlign": "left",
               },
               Array [
@@ -901,6 +920,7 @@ exports[`renders list section without subheader 1`] = `
           allowFontScaling={false}
           importantForAccessibility="no-hide-descendants"
           pointerEvents="none"
+          selectable={false}
           style={
             Array [
               Object {
@@ -955,6 +975,8 @@ exports[`renders list section without subheader 1`] = `
                 "color": "#000000",
                 "fontFamily": "System",
                 "fontWeight": "400",
+              },
+              Object {
                 "textAlign": "left",
               },
               Array [

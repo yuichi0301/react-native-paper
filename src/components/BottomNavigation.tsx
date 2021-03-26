@@ -55,8 +55,10 @@ type TouchableProps = TouchableWithoutFeedbackProps & {
 
 type Props = {
   /**
-   * Whether the shifting style is used, the active tab appears wider and the inactive tabs won't have a label.
+   * Whether the shifting style is used, the active tab icon shifts up to show the label and the inactive tabs won't have a label.
+   *
    * By default, this is `true` when you have more than 3 tabs.
+   * Pass `shifting={false}` to explicitly disable this animation, or `shifting={true}` to always use this animation.
    */
   shifting?: boolean;
   /**
@@ -206,8 +208,13 @@ type Props = {
    */
   keyboardHidesNavigationBar?: boolean;
   /**
-   * Style for the bottom navigation bar.
-   * You can set a bottom padding here if you have a translucent navigation bar on Android:
+   * Style for the bottom navigation bar.  You can pass a custom background color here:
+   *
+   * ```js
+   * barStyle={{ backgroundColor: '#694fad' }}
+   * ```
+   *
+   * If you have a translucent navigation bar on Android, you can also set a bottom padding here:
    *
    * ```js
    * barStyle={{ paddingBottom: 48 }}
@@ -240,6 +247,7 @@ const Touchable = ({
   TouchableRipple.supported ? (
     <TouchableRipple
       {...rest}
+      disabled={rest.disabled || undefined}
       borderless={borderless}
       centered={centered}
       rippleColor={rippleColor}
@@ -551,14 +559,18 @@ const BottomNavigation = ({
   const backgroundColor = shifting
     ? indexAnim.interpolate({
         inputRange: routes.map((_, i) => i),
-        //@ts-ignore
+        // FIXME: does outputRange support ColorValue or just strings?
+        // @ts-expect-error
         outputRange: routes.map(
           (route) => getColor({ route }) || approxBackgroundColor
         ),
       })
     : approxBackgroundColor;
 
-  const isDark = !color(approxBackgroundColor).isLight();
+  const isDark =
+    typeof approxBackgroundColor === 'string'
+      ? !color(approxBackgroundColor).isLight()
+      : true;
 
   const textColor = isDark ? white : black;
   const activeTintColor =
@@ -742,12 +754,13 @@ const BottomNavigation = ({
                 onPress: () => handleTabPress(index),
                 testID: getTestID({ route }),
                 accessibilityLabel: getAccessibilityLabel({ route }),
+                // @ts-expect-error We keep old a11y props for backwards compat with old RN versions
                 accessibilityTraits: focused
                   ? ['button', 'selected']
                   : 'button',
                 accessibilityComponentType: 'button',
                 accessibilityRole: 'button',
-                accessibilityState: { selected: true },
+                accessibilityState: { selected: focused },
                 style: styles.item,
                 children: (
                   <View pointerEvents="none">
