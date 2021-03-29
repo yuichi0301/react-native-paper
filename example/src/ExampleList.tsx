@@ -111,7 +111,6 @@ export default function ExampleList({ navigation }: Props) {
         backgroundColor: colors.background,
         paddingBottom: safeArea.bottom,
       }}
-      style={{ backgroundColor: colors.background }}
       ItemSeparatorComponent={Divider}
       renderItem={renderItem}
       keyExtractor={keyExtractor}

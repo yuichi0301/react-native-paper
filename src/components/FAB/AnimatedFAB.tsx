@@ -17,8 +17,11 @@ import TouchableRipple from '../TouchableRipple/TouchableRipple';
 import { withTheme } from '../../core/theming';
 import type { $RemoveChildren } from '../../types';
 import type { IconSource } from './../Icon';
-//@ts-ignore
-import type { AccessibilityState, TextLayoutEvent } from 'react-native';
+import type {
+  AccessibilityState,
+  NativeSyntheticEvent,
+  TextLayoutEventData,
+} from 'react-native';
 import { white, black } from '../../styles/colors';
 import AnimatedText from '../Typography/AnimatedText';
 import getContrastingColor from '../../utils/getContrastingColor';
@@ -109,7 +112,7 @@ const AnimatedFAB = ({
   ...rest
 }: Props) => {
   const isIOS = Platform.OS === 'ios';
-  const animateFromRight = animateFrom === 'right';
+  const isAnimatedFromRight = animateFrom === 'right';
   const isIconStatic = iconMode === 'static';
   const { current: visibility } = React.useRef<Animated.Value>(
     new Animated.Value(visible ? 1 : 0)
@@ -168,7 +171,7 @@ const AnimatedFAB = ({
 
   const extendedWidth = textWidth + 1.5 * SIZE;
 
-  const distance = animateFromRight
+  const distance = isAnimatedFromRight
     ? -textWidth - BORDER_RADIUS
     : textWidth + BORDER_RADIUS;
 
@@ -181,7 +184,9 @@ const AnimatedFAB = ({
     }).start();
   }, [animFAB, scale, distance, extended]);
 
-  const onTextLayout = ({ nativeEvent }: TextLayoutEvent) => {
+  const onTextLayout = ({
+    nativeEvent,
+  }: NativeSyntheticEvent<TextLayoutEventData>) => {
     const currentWidth = Math.ceil(nativeEvent.lines[0].width);
     const currentHeight = Math.ceil(nativeEvent.lines[0].height);
 
@@ -192,7 +197,7 @@ const AnimatedFAB = ({
   };
 
   const getSidesPosition = () => {
-    if (animateFromRight) {
+    if (isAnimatedFromRight) {
       return {
         left: -distance,
         right: undefined,
@@ -231,8 +236,10 @@ const AnimatedFAB = ({
             transform: [
               {
                 scaleY: animFAB.interpolate({
-                  inputRange: animateFromRight ? [distance, 0] : [0, distance],
-                  outputRange: animateFromRight ? [SCALE, 1] : [1, SCALE],
+                  inputRange: isAnimatedFromRight
+                    ? [distance, 0]
+                    : [0, distance],
+                  outputRange: isAnimatedFromRight ? [SCALE, 1] : [1, SCALE],
                 }),
               },
             ],
@@ -348,30 +355,28 @@ const AnimatedFAB = ({
       <View pointerEvents="none">
         <AnimatedText
           numberOfLines={1}
-          //@ts-ignore
           onTextLayout={isIOS ? onTextLayout : undefined}
           ellipsizeMode={'tail'}
           style={[
-            animateFromRight
-              ? // eslint-disable-next-line react-native/no-inline-styles
-                { right: isIconStatic ? SIZE : BORDER_RADIUS }
+            isAnimatedFromRight
+              ? { right: isIconStatic ? SIZE : BORDER_RADIUS }
               : { left: isIconStatic ? SIZE : BORDER_RADIUS },
             {
               minWidth: textWidth,
               top: -BORDER_RADIUS - textHeight / 2,
               opacity: animFAB.interpolate({
-                inputRange: animateFromRight
+                inputRange: isAnimatedFromRight
                   ? [distance, 0.7 * distance, 0]
                   : [0, 0.7 * distance, distance],
-                outputRange: animateFromRight ? [1, 0, 0] : [0, 0, 1],
+                outputRange: isAnimatedFromRight ? [1, 0, 0] : [0, 0, 1],
               }),
               transform: [
                 {
                   translateX: animFAB.interpolate({
-                    inputRange: animateFromRight
+                    inputRange: isAnimatedFromRight
                       ? [distance, 0]
                       : [0, distance],
-                    outputRange: animateFromRight ? [0, SIZE] : [-SIZE, 0],
+                    outputRange: isAnimatedFromRight ? [0, SIZE] : [-SIZE, 0],
                   }),
                 },
               ],
@@ -389,8 +394,11 @@ const AnimatedFAB = ({
       </View>
 
       {!isIOS && (
+        // Method `onTextLayout` on Android returns sizes of text visible on the screen,
+        // however during render the text in `FAB` isn't fully visible. In order to get
+        // proper text measurements there is a need to additionaly render that text, but
+        // wrapped in absolutely positioned `ScrollView` which height is 0.
         <ScrollView style={styles.textPlaceholderContainer}>
-          {/* @ts-ignore */}
           <Text onTextLayout={onTextLayout}>{label}</Text>
         </ScrollView>
       )}
