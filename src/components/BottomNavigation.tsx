@@ -736,7 +736,7 @@ const BottomNavigation = ({
                       outputRange: [7, 0],
                     })
                   : 0
-                : 7;
+                : 0;
 
               // We render the active icon and label on top of inactive ones and cross-fade them on change.
               // This trick gives the illusion that we are animating between active and inactive colors.
